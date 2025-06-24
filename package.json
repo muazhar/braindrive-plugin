@@ -1,0 +1,16 @@
+{
+  "name": "openai-plugin",
+  "version": "1.0.0",
+  "main": "dist/remoteEntry.js",
+  "scripts": {
+    "build": "webpack"
+  },
+  "dependencies": {
+    "react": "^18.0.0"
+  },
+  "devDependencies": {
+    "webpack": "^5.0.0",
+    "@types/react": "^18.0.0",
+    "typescript": "^5.0.0"
+  }
+}

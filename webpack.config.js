@@ -7,12 +7,12 @@ module.exports = {
   mode: "development",
   entry: "./src/index",
   output: {
-    path: path.resolve(__dirname, '../../backend/plugins/BrainDriveBasicAIChat/frontend/dist'),
+    path: path.resolve(__dirname, "dist"),
     publicPath: "auto",
     clean: true,
     library: {
       type: 'var',
-      name: 'BrainDriveBasicAIChat'
+      name: 'OpenAIPlugin'
     }
   },
   resolve: {
@@ -28,7 +28,7 @@ module.exports = {
       {
         test: /\.css$/,
         use: [
-          'style-loader', 
+          'style-loader',
           'css-loader',
           'postcss-loader'
         ]
@@ -37,23 +37,19 @@ module.exports = {
   },
   plugins: [
     new ModuleFederationPlugin({
-      name: "BrainDriveBasicAIChat",
-      library: { type: "var", name: "BrainDriveBasicAIChat" },
+      name: "OpenAIPlugin",
+      library: { type: "var", name: "OpenAIPlugin" },
       filename: "remoteEntry.js",
       exposes: {
-        "./ComponentModelSelection": "./src/ComponentModelSelection",
-        "./AIPromptChat": "./src/components/AIPromptChat/index",
-        "./AIChatHistory": "./src/AIChatHistory"
-
-
+        "./OpenAIChat": "./src/OpenAIChat"
       },
       shared: {
-        react: { 
+        react: {
           singleton: true,
           requiredVersion: deps.react,
           eager: true
         },
-        "react-dom": { 
+        "react-dom": {
           singleton: true,
           requiredVersion: deps["react-dom"],
           eager: true
@@ -65,7 +61,7 @@ module.exports = {
     }),
   ],
   devServer: {
-    port: 9006,
+    port: 9010,
     static: {
       directory: path.join(__dirname, "public"),
     },

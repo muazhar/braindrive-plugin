@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import datetime
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,7 +27,6 @@ except ImportError:
             logger.info(f"Using new architecture: BaseLifecycleManager imported from local backend: {backend_path}")
         else:
             from abc import ABC, abstractmethod
-            from datetime import datetime
             from typing import Set
             class BaseLifecycleManager(ABC):
                 def __init__(self, plugin_slug: str, version: str, shared_storage_path: Path):
@@ -35,8 +35,8 @@ except ImportError:
                     self.shared_path = shared_storage_path
                     self.active_users: Set[str] = set()
                     self.instance_id = f"{plugin_slug}_{version}"
-                    self.created_at = datetime.now()
-                    self.last_used = datetime.now()
+                    self.created_at = datetime.datetime.now()
+                    self.last_used = datetime.datetime.now()
                 @abstractmethod
                 async def get_plugin_metadata(self): pass
                 @abstractmethod

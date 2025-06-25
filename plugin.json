@@ -3,7 +3,7 @@
   "name": "OpenAI Integration",
   "description": "Integrates OpenAI API for advanced AI features.",
   "version": "1.0.0",
-  "scope": "OpenAI",
+  "scope": "OpenAIPlugin",
   "type": "frontend",
   "bundlemethod": "webpack",
   "bundlelocation": "dist/remoteEntry.js",

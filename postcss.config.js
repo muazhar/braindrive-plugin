@@ -1,6 +1,7 @@
+// PostCSS config for OpenAI Plugin
 module.exports = {
   plugins: {
-    tailwindcss: {},
+    '@tailwindcss/postcss': {},
     autoprefixer: {},
   },
 }

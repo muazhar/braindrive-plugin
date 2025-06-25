@@ -1,0 +1,51 @@
+.bd-openai-status {
+  font-family: sans-serif;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.status .indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: gray;
+  margin-right: 0.5rem;
+}
+
+.status.online .indicator {
+  background-color: green;
+}
+
+.status.offline .indicator {
+  background-color: red;
+}
+
+.status.invalid_key .indicator {
+  background-color: orange;
+}
+
+.status.unknown .indicator {
+  background-color: gray;
+}
+
+.openai-key-input {
+  margin-bottom: 1rem;
+}
+
+.openai-key-input input {
+  padding: 0.3rem 0.5rem;
+  margin-right: 0.5rem;
+}
+
+.openai-key-input button {
+  padding: 0.3rem 0.8rem;
+}
+
+.error {
+  color: #b91c1c;
+  margin-top: 0.5rem;
+}

@@ -7,7 +7,7 @@ module.exports = {
   mode: "development",
   entry: "./src/index",
   output: {
-    path: path.resolve(__dirname, "dist"),
+    path: path.resolve(__dirname, './dist'),
     publicPath: "auto",
     clean: true,
     library: {
@@ -41,7 +41,7 @@ module.exports = {
       library: { type: "var", name: "OpenAIPlugin" },
       filename: "remoteEntry.js",
       exposes: {
-        "./OpenAIChat": "./src/OpenAIChat"
+        "./ComponentOpenAIStatus": "./src/ComponentOpenAIStatus",
       },
       shared: {
         react: {
@@ -61,7 +61,7 @@ module.exports = {
     }),
   ],
   devServer: {
-    port: 9010,
+    port: 9006,
     static: {
       directory: path.join(__dirname, "public"),
     },

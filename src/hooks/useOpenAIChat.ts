@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { OpenAIMessage, OpenAIChatRequest } from '../types/openai';
 import { sendOpenAIChat } from '../services/openaiService';
 
-export function useOpenAIChat(initialGreeting: string, apiKey: string) {
+export function useOpenAIChat(initialGreeting: string, apiKey: string, initialModel: string) {
   const [messages, setMessages] = useState<OpenAIMessage[]>([
     { role: 'system', content: initialGreeting }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [model, setModel] = useState(initialModel);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
@@ -16,7 +17,7 @@ export function useOpenAIChat(initialGreeting: string, apiKey: string) {
     setLoading(true);
     setError('');
     try {
-      const response = await sendOpenAIChat({ apiKey, prompt: input });
+      const response = await sendOpenAIChat({ apiKey, prompt: input, model });
       if (response.choices && response.choices[0] && response.choices[0].message) {
         setMessages(prev => [...prev, { role: 'assistant', content: response.choices[0].message.content }]);
       } else if (response.error) {
@@ -37,6 +38,8 @@ export function useOpenAIChat(initialGreeting: string, apiKey: string) {
     setInput,
     loading,
     error,
-    sendMessage
+    sendMessage,
+    model,
+    setModel
   };
 }

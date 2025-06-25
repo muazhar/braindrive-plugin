@@ -6,6 +6,7 @@ export interface OpenAIMessage {
 export interface OpenAIChatRequest {
   apiKey: string;
   prompt: string;
+  model: string;
 }
 
 export interface OpenAIChatResponse {

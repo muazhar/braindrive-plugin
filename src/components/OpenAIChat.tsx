@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useOpenAIChat } from '../hooks/useOpenAIChat';
 
 interface OpenAIChatProps {
@@ -6,18 +6,52 @@ interface OpenAIChatProps {
   apiKey?: string;
 }
 
-const OpenAIChat: React.FC<OpenAIChatProps> = ({ initialGreeting = "Hello! Ask me anything powered by OpenAI.", apiKey = "" }) => {
+const MODEL_OPTIONS = [
+  { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
+  { value: 'gpt-4', label: 'GPT-4' }
+];
+
+const OpenAIChat: React.FC<OpenAIChatProps> = ({ initialGreeting = "Hello! Ask me anything powered by OpenAI.", apiKey: initialApiKey = "" }) => {
+  const [apiKey, setApiKey] = useState(initialApiKey);
+  const [selectedModel, setSelectedModel] = useState(MODEL_OPTIONS[0].value);
   const {
     messages,
     input,
     setInput,
     loading,
     error,
-    sendMessage
-  } = useOpenAIChat(initialGreeting, apiKey || "");
+    sendMessage,
+    model,
+    setModel
+  } = useOpenAIChat(initialGreeting, apiKey, selectedModel);
+
+  // Keep hook and local state in sync
+  React.useEffect(() => { setModel(selectedModel); }, [selectedModel, setModel]);
 
   return (
     <div className="max-w-xl mx-auto border border-gray-200 rounded-lg p-6 bg-white shadow-md">
+      <div className="mb-4 flex flex-col gap-2">
+        <label className="font-semibold">OpenAI API Key:</label>
+        <input
+          type="password"
+          value={apiKey}
+          onChange={e => setApiKey(e.target.value)}
+          placeholder="sk-..."
+          className="px-3 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          disabled={loading}
+        />
+        <label className="font-semibold mt-2">Model:</label>
+        <select
+          value={selectedModel}
+          onChange={e => setSelectedModel(e.target.value)}
+          className="px-3 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+          disabled={loading}
+        >
+          {MODEL_OPTIONS.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
       <div className="min-h-[200px] mb-4 space-y-2">
         {messages.map((msg, idx) => (
           <div key={idx} className={
@@ -45,7 +79,7 @@ const OpenAIChat: React.FC<OpenAIChatProps> = ({ initialGreeting = "Hello! Ask m
         />
         <button
           onClick={sendMessage}
-          disabled={loading || !input.trim()}
+          disabled={loading || !input.trim() || !apiKey}
           className="px-4 py-2 rounded bg-blue-600 text-white font-semibold disabled:bg-blue-300"
         >
           Send

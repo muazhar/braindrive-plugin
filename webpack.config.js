@@ -42,6 +42,7 @@ module.exports = {
       filename: "remoteEntry.js",
       exposes: {
         "./ComponentOpenAIStatus": "./src/ComponentOpenAIStatus",
+        "./OpenAIChat": "./src/components/OpenAIChat",
       },
       shared: {
         react: {

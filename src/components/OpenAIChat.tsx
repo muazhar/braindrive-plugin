@@ -1,131 +1,275 @@
-import React, { useState } from 'react';
-import { useOpenAIChat } from '../hooks/useOpenAIChat';
+import React from 'react';
+import './OpenAIChat.css';
+import { OpenAIMessage } from '../types/openai';
+import { sendOpenAIChat } from '../services/openaiService';
 
 interface OpenAIChatProps {
   initialGreeting?: string;
   apiKey?: string;
 }
 
-const MODEL_OPTIONS = [
-  { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
-  { value: 'gpt-4', label: 'GPT-4' },
-  { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
-  { value: 'o1-mini', label: 'o1-mini' },
-  { value: 'o3-mini', label: 'o3-mini' },
-  { value: 'gpt-4o', label: 'GPT-4o' }
-];
+interface OpenAIChatState {
+  apiKey: string;
+  selectedModel: string;
+  messages: OpenAIMessage[];
+  input: string;
+  loading: boolean;
+  error: string | null;
+  availableModels: { value: string; label: string }[];
+}
 
-const OpenAIChat: React.FC<OpenAIChatProps> = ({ initialGreeting = "Hello! Ask me anything powered by OpenAI.", apiKey: initialApiKey = "" }) => {
-  const [apiKey, setApiKey] = useState(initialApiKey);
-  const [selectedModel, setSelectedModel] = useState(MODEL_OPTIONS[0].value);
-  const {
-    messages,
-    input,
-    setInput,
-    loading,
-    error,
-    sendMessage,
-    model,
-    setModel,
-    clearChat
-  } = useOpenAIChat(initialGreeting, apiKey, selectedModel);
+/**
+ * OpenAIChat component for chatting with OpenAI models
+ */
+class OpenAIChat extends React.Component<OpenAIChatProps, OpenAIChatState> {
+  constructor(props: OpenAIChatProps) {
+    super(props);
+    this.state = {
+      apiKey: props.apiKey || '',
+      selectedModel: 'gpt-3.5-turbo',
+      messages: [
+        {
+          role: 'system',
+          content: props.initialGreeting || 'Hello! Ask me anything powered by OpenAI.'
+        }
+      ],
+      input: '',
+      loading: false,
+      error: null,
+      availableModels: [
+        { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
+        { value: 'gpt-4', label: 'GPT-4' },
+        { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
+        { value: 'o1-mini', label: 'o1-mini' },
+        { value: 'o3-mini', label: 'o3-mini' },
+        { value: 'gpt-4o', label: 'GPT-4o' }
+      ]
+    };
+  }
 
-  // Keep hook and local state in sync
-  React.useEffect(() => { setModel(selectedModel); }, [selectedModel, setModel]);
+  componentDidMount() {
+    // Load available models from OpenAI API if API key is provided
+    if (this.state.apiKey) {
+      this.loadAvailableModels();
+    }
+  }
 
-  return (
-    <div className="max-w-xl mx-auto border border-gray-200 rounded-lg p-6 bg-white shadow-md">
-      <div className="mb-4 flex flex-col gap-2">
-        <label className="font-semibold">OpenAI API Key:</label>
-        <input
-          type="password"
-          value={apiKey}
-          onChange={e => setApiKey(e.target.value)}
-          placeholder="sk-..."
-          className="px-3 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          disabled={loading}
-        />
-        <div className="flex gap-2 items-end">
-          <div className="flex-1">
-            <label className="font-semibold">Model:</label>
-            <select
-              value={selectedModel}
-              onChange={e => setSelectedModel(e.target.value)}
-              className="w-full px-3 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              disabled={loading}
-            >
-              {MODEL_OPTIONS.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-          </div>
-          <button
-            onClick={clearChat}
+  componentDidUpdate(prevProps: OpenAIChatProps, prevState: OpenAIChatState) {
+    // Reload models if API key changes
+    if (prevState.apiKey !== this.state.apiKey && this.state.apiKey) {
+      this.loadAvailableModels();
+    }
+  }
+
+  loadAvailableModels = async () => {
+    try {
+      const response = await fetch('https://api.openai.com/v1/models', {
+        headers: {
+          'Authorization': `Bearer ${this.state.apiKey}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const chatModels = data.data
+          .filter((model: any) => model.id.includes('gpt') || model.id.includes('o1') || model.id.includes('o3'))
+          .map((model: any) => ({
+            value: model.id,
+            label: model.id
+          }))
+          .sort((a: any, b: any) => a.label.localeCompare(b.label));
+
+        if (chatModels.length > 0) {
+          this.setState({ availableModels: chatModels });
+        }
+      }
+    } catch (error) {
+      // If loading models fails, keep the default models
+      console.warn('Failed to load models from OpenAI API:', error);
+    }
+  };
+
+  handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({ apiKey: e.target.value });
+  };
+
+  handleModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    this.setState({ selectedModel: e.target.value });
+  };
+
+  handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({ input: e.target.value });
+  };
+
+  handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      this.sendMessage();
+    }
+  };
+
+  sendMessage = async () => {
+    const { input, apiKey, selectedModel, messages } = this.state;
+    
+    if (!input.trim() || !apiKey || this.state.loading) {
+      return;
+    }
+
+    const userMessage: OpenAIMessage = {
+      role: 'user',
+      content: input.trim()
+    };
+
+    const newMessages = [...messages, userMessage];
+    this.setState({
+      messages: newMessages,
+      input: '',
+      loading: true,
+      error: null
+    });
+
+    try {
+      const response = await sendOpenAIChat({
+        model: selectedModel,
+        messages: newMessages,
+        max_tokens: 1000,
+        temperature: 0.7
+      }, apiKey);
+
+      if (response.choices && response.choices.length > 0) {
+        const assistantMessage: OpenAIMessage = {
+          role: 'assistant',
+          content: response.choices[0].message.content
+        };
+
+        this.setState({
+          messages: [...newMessages, assistantMessage],
+          loading: false
+        });
+      } else {
+        throw new Error('No response from OpenAI');
+      }
+    } catch (error) {
+      this.setState({
+        loading: false,
+        error: error instanceof Error ? error.message : 'Failed to send message'
+      });
+    }
+  };
+
+  clearChat = () => {
+    const { initialGreeting } = this.props;
+    this.setState({
+      messages: [
+        {
+          role: 'system',
+          content: initialGreeting || 'Hello! Ask me anything powered by OpenAI.'
+        }
+      ],
+      input: '',
+      error: null
+    });
+  };
+
+  render() {
+    const { apiKey, selectedModel, messages, input, loading, error, availableModels } = this.state;
+    
+    return (
+      <div className="bd-openai-chat">
+        <h3>OpenAI Chat</h3>
+        
+        <div className="config-section">
+          <label className="label">OpenAI API Key:</label>
+          <input
+            type="password"
+            value={apiKey}
+            onChange={this.handleApiKeyChange}
+            placeholder="sk-..."
+            className="api-key-input"
             disabled={loading}
-            className="px-3 py-2 rounded bg-gray-500 text-white font-semibold disabled:bg-gray-300 hover:bg-gray-600"
+          />
+          
+          <div className="config-row">
+            <div className="flex-1">
+              <label className="label">Model:</label>
+              <select
+                value={selectedModel}
+                onChange={this.handleModelChange}
+                className="model-select"
+                disabled={loading}
+              >
+                {availableModels.map(model => (
+                  <option key={model.value} value={model.value}>
+                    {model.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              onClick={this.clearChat}
+              disabled={loading}
+              className="clear-button"
+            >
+              Clear Chat
+            </button>
+          </div>
+        </div>
+
+        <div className="chat-container">
+          {messages.filter(msg => msg.role !== 'system').map((msg, idx) => (
+            <div key={idx} className={`message ${msg.role}`}>
+              <div className={`message-bubble ${msg.role}`}>
+                <div className="message-header">
+                  {msg.role === 'user' ? 'You' : 'OpenAI'}
+                </div>
+                <div>{msg.content}</div>
+              </div>
+            </div>
+          ))}
+          
+          {loading && (
+            <div className="loading-indicator">
+              <div className="loading-bubble">
+                <div className="message-header">OpenAI</div>
+                <div className="loading-dots">
+                  <div className="loading-dot"></div>
+                  <div className="loading-dot"></div>
+                  <div className="loading-dot"></div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {error && (
+            <div className="error-message">
+              <div className="error-bubble">
+                <div className="message-header">Error</div>
+                <div>{error}</div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="input-section">
+          <input
+            type="text"
+            value={input}
+            onChange={this.handleInputChange}
+            onKeyDown={this.handleKeyDown}
+            placeholder="Ask OpenAI..."
+            className="message-input"
+            disabled={loading}
+          />
+          <button
+            onClick={this.sendMessage}
+            disabled={loading || !input.trim() || !apiKey}
+            className="send-button"
           >
-            Clear Chat
+            Send
           </button>
         </div>
       </div>
-      <div className="min-h-[300px] max-h-[500px] mb-4 space-y-3 overflow-y-auto border border-gray-200 rounded-lg p-4 bg-gray-50">
-        {messages.filter(msg => msg.role !== 'system').map((msg, idx) => (
-          <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] p-3 rounded-lg ${
-              msg.role === 'user' 
-                ? 'bg-blue-600 text-white' 
-                : 'bg-white text-gray-800 border border-gray-200'
-            }`}>
-              <div className="text-xs font-semibold mb-1 opacity-70">
-                {msg.role === 'user' ? 'You' : 'OpenAI'}
-              </div>
-              <div className="whitespace-pre-wrap break-words">
-                {msg.content}
-              </div>
-            </div>
-          </div>
-        ))}
-        {loading && (
-          <div className="flex justify-start">
-            <div className="bg-white text-gray-800 border border-gray-200 p-3 rounded-lg">
-              <div className="text-xs font-semibold mb-1 opacity-70">OpenAI</div>
-              <div className="flex items-center space-x-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-              </div>
-            </div>
-          </div>
-        )}
-        {error && (
-          <div className="flex justify-center">
-            <div className="bg-red-100 text-red-700 border border-red-200 p-3 rounded-lg max-w-[80%]">
-              <div className="text-xs font-semibold mb-1">Error</div>
-              <div>{error}</div>
-            </div>
-          </div>
-        )}
-      </div>
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          placeholder="Ask OpenAI..."
-          className="flex-1 px-3 py-2 rounded border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          disabled={loading}
-          onKeyDown={e => { if (e.key === "Enter") sendMessage(); }}
-        />
-        <button
-          onClick={sendMessage}
-          disabled={loading || !input.trim() || !apiKey}
-          className="px-4 py-2 rounded bg-blue-600 text-white font-semibold disabled:bg-blue-300"
-        >
-          Send
-        </button>
-      </div>
-    </div>
-  );
-};
+    );
+  }
+}
 
 export default OpenAIChat;

@@ -1,5 +1,22 @@
 .bd-openai-status {
   font-family: sans-serif;
+  color: var(--text-primary, #374151);
+  background-color: var(--bg-primary, #ffffff);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .bd-openai-status {
+    color: var(--text-primary, #f3f4f6);
+    background-color: var(--bg-primary, #1f2937);
+  }
+}
+
+/* Support for parent application dark mode class */
+.dark .bd-openai-status,
+[data-theme="dark"] .bd-openai-status {
+  color: var(--text-primary, #f3f4f6);
+  background-color: var(--bg-primary, #1f2937);
 }
 
 .status {
@@ -39,13 +56,55 @@
 .openai-key-input input {
   padding: 0.3rem 0.5rem;
   margin-right: 0.5rem;
+  background-color: var(--input-bg, #ffffff);
+  color: var(--input-text, #374151);
+  border: 1px solid var(--border-color, #d1d5db);
 }
 
 .openai-key-input button {
   padding: 0.3rem 0.8rem;
+  background-color: var(--button-bg, #3b82f6);
+  color: var(--button-text, #ffffff);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.openai-key-input button:hover {
+  background-color: var(--button-hover-bg, #2563eb);
+}
+
+.openai-key-input button:disabled {
+  background-color: var(--button-disabled-bg, #9ca3af);
+  cursor: not-allowed;
 }
 
 .error {
-  color: #b91c1c;
+  color: var(--error-color, #b91c1c);
   margin-top: 0.5rem;
+}
+
+/* Dark mode styles */
+@media (prefers-color-scheme: dark) {
+  .bd-openai-status .openai-key-input input {
+    background-color: var(--input-bg, #374151);
+    color: var(--input-text, #f3f4f6);
+    border-color: var(--border-color, #4b5563);
+  }
+  
+  .bd-openai-status .error {
+    color: var(--error-color, #f87171);
+  }
+}
+
+.dark .bd-openai-status .openai-key-input input,
+[data-theme="dark"] .bd-openai-status .openai-key-input input {
+  background-color: var(--input-bg, #374151);
+  color: var(--input-text, #f3f4f6);
+  border-color: var(--border-color, #4b5563);
+}
+
+.dark .bd-openai-status .error,
+[data-theme="dark"] .bd-openai-status .error {
+  color: var(--error-color, #f87171);
 }

@@ -9,7 +9,11 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, './dist'),
     publicPath: "auto",
-    clean: true
+    clean: true,
+    library: {
+      type: 'var',
+      name: 'OpenAIPluginin'
+    }
   },
   resolve: {
     extensions: [".tsx", ".ts", ".js"],

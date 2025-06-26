@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { OpenAIMessage, OpenAIChatRequest } from '../types/openai';
 import { sendOpenAIChat } from '../services/openaiService';
 
@@ -11,26 +11,58 @@ export function useOpenAIChat(initialGreeting: string, apiKey: string, initialMo
   const [error, setError] = useState('');
   const [model, setModel] = useState(initialModel);
 
-  const sendMessage = async () => {
+  const sendMessage = useCallback(async () => {
     if (!input.trim()) return;
-    setMessages([...messages, { role: 'user', content: input }]);
+    if (!apiKey) {
+      setError('Please enter your OpenAI API key');
+      return;
+    }
+
+    const userMessage: OpenAIMessage = { role: 'user', content: input.trim() };
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
+    setInput('');
     setLoading(true);
     setError('');
+
     try {
-      const response = await sendOpenAIChat({ apiKey, prompt: input, model });
+      // Prepare conversation history for API call
+      // Filter out system messages for the API call, but keep user and assistant messages
+      const conversationMessages = newMessages.filter(msg => msg.role !== 'system');
+      
+      const request: OpenAIChatRequest = {
+        model,
+        messages: conversationMessages,
+        max_tokens: 1000,
+        temperature: 0.7
+      };
+
+      const response = await sendOpenAIChat(request, apiKey);
+      
       if (response.choices && response.choices[0] && response.choices[0].message) {
-        setMessages(prev => [...prev, { role: 'assistant', content: response.choices[0].message.content }]);
+        const assistantMessage: OpenAIMessage = {
+          role: 'assistant',
+          content: response.choices[0].message.content
+        };
+        setMessages(prev => [...prev, assistantMessage]);
       } else if (response.error) {
-        setError(typeof response.error === 'string' ? response.error : response.error.message);
+        setError(response.error.message);
       } else {
         setError('Unexpected response from OpenAI');
       }
     } catch (e: any) {
-      setError(e.message || 'Network error');
+      setError(e.message || 'Network error occurred');
+      // Remove the user message if there was an error
+      setMessages(messages);
+    } finally {
+      setLoading(false);
     }
-    setInput('');
-    setLoading(false);
-  };
+  }, [input, apiKey, model, messages]);
+
+  const clearChat = useCallback(() => {
+    setMessages([{ role: 'system', content: initialGreeting }]);
+    setError('');
+  }, [initialGreeting]);
 
   return {
     messages,
@@ -40,6 +72,7 @@ export function useOpenAIChat(initialGreeting: string, apiKey: string, initialMo
     error,
     sendMessage,
     model,
-    setModel
+    setModel,
+    clearChat
   };
 }

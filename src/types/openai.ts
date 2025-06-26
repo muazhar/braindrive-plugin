@@ -4,12 +4,34 @@ export interface OpenAIMessage {
 }
 
 export interface OpenAIChatRequest {
-  apiKey: string;
-  prompt: string;
   model: string;
+  messages: OpenAIMessage[];
+  max_tokens?: number;
+  temperature?: number;
+  stream?: boolean;
 }
 
 export interface OpenAIChatResponse {
-  choices: { message: { role: string; content: string } }[];
-  error?: { message: string } | string;
+  id: string;
+  object: string;
+  created: number;
+  model: string;
+  choices: {
+    index: number;
+    message: {
+      role: string;
+      content: string;
+    };
+    finish_reason: string;
+  }[];
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
+  error?: {
+    message: string;
+    type: string;
+    code?: string;
+  };
 }

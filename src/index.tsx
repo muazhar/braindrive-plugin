@@ -1,6 +1,6 @@
 import './index.css';
 import './bootstrap';
 import ComponentOpenAIStatus from './ComponentOpenAIStatus';
-import OpenAIChat from './components/OpenAIChat';
+import ComponentOpenAIChat from './ComponentOpenAIChat';
 
-export { ComponentOpenAIStatus, OpenAIChat };
+export { ComponentOpenAIStatus, ComponentOpenAIChat };

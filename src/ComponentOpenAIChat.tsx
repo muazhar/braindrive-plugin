@@ -16,6 +16,10 @@ interface ComponentOpenAIChatState {
   loading: boolean;
   error: string | null;
   availableModels: { value: string; label: string }[];
+  apiKeyValidating: boolean;
+  apiKeyValid: boolean;
+  modelsLoading: boolean;
+  modelsLoaded: boolean;
 }
 
 /**
@@ -43,25 +47,55 @@ class ComponentOpenAIChat extends React.Component<ComponentOpenAIChatProps, Comp
         { value: 'o1-mini', label: 'o1-mini' },
         { value: 'o3-mini', label: 'o3-mini' },
         { value: 'gpt-4o', label: 'GPT-4o' }
-      ]
+      ],
+      apiKeyValidating: false,
+      apiKeyValid: false,
+      modelsLoading: false,
+      modelsLoaded: false
     };
   }
 
   componentDidMount() {
     // Load available models from OpenAI API if API key is provided
     if (this.state.apiKey) {
-      this.loadAvailableModels();
+      this.validateApiKeyAndLoadModels();
     }
   }
 
   componentDidUpdate(prevProps: ComponentOpenAIChatProps, prevState: ComponentOpenAIChatState) {
-    // Reload models if API key changes
-    if (prevState.apiKey !== this.state.apiKey && this.state.apiKey) {
-      this.loadAvailableModels();
+    // Validate API key and reload models if API key changes
+    if (prevState.apiKey !== this.state.apiKey) {
+      if (this.state.apiKey && this.state.apiKey.startsWith('sk-')) {
+        this.validateApiKeyAndLoadModels();
+      } else {
+        this.setState({
+          apiKeyValid: false,
+          modelsLoaded: false,
+          availableModels: [
+            { value: 'gpt-3.5-turbo', label: 'GPT-3.5 Turbo' },
+            { value: 'gpt-4', label: 'GPT-4' },
+            { value: 'gpt-4-turbo', label: 'GPT-4 Turbo' },
+            { value: 'o1-mini', label: 'o1-mini' },
+            { value: 'o3-mini', label: 'o3-mini' },
+            { value: 'gpt-4o', label: 'GPT-4o' }
+          ]
+        });
+      }
     }
   }
 
-  loadAvailableModels = async () => {
+  validateApiKeyAndLoadModels = async () => {
+    if (!this.state.apiKey || !this.state.apiKey.startsWith('sk-')) {
+      return;
+    }
+
+    this.setState({ 
+      apiKeyValidating: true, 
+      apiKeyValid: false, 
+      modelsLoading: false,
+      modelsLoaded: false 
+    });
+
     try {
       const response = await fetch('https://api.openai.com/v1/models', {
         headers: {
@@ -70,6 +104,12 @@ class ComponentOpenAIChat extends React.Component<ComponentOpenAIChatProps, Comp
       });
 
       if (response.ok) {
+        this.setState({ 
+          apiKeyValidating: false, 
+          apiKeyValid: true, 
+          modelsLoading: true 
+        });
+
         const data = await response.json();
         const chatModels = data.data
           .filter((model: any) => model.id.includes('gpt') || model.id.includes('o1') || model.id.includes('o3'))
@@ -80,17 +120,43 @@ class ComponentOpenAIChat extends React.Component<ComponentOpenAIChatProps, Comp
           .sort((a: any, b: any) => a.label.localeCompare(b.label));
 
         if (chatModels.length > 0) {
-          this.setState({ availableModels: chatModels });
+          this.setState({ 
+            availableModels: chatModels, 
+            modelsLoading: false, 
+            modelsLoaded: true 
+          });
+        } else {
+          this.setState({ 
+            modelsLoading: false, 
+            modelsLoaded: true 
+          });
         }
+      } else {
+        this.setState({ 
+          apiKeyValidating: false, 
+          apiKeyValid: false,
+          modelsLoading: false,
+          modelsLoaded: false
+        });
       }
     } catch (error) {
-      // If loading models fails, keep the default models
-      console.warn('Failed to load models from OpenAI API:', error);
+      this.setState({ 
+        apiKeyValidating: false, 
+        apiKeyValid: false,
+        modelsLoading: false,
+        modelsLoaded: false
+      });
+      console.warn('Failed to validate API key or load models:', error);
     }
   };
 
   handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({ apiKey: e.target.value });
+    const newApiKey = e.target.value;
+    this.setState({ 
+      apiKey: newApiKey,
+      apiKeyValid: false,
+      modelsLoaded: false
+    });
   };
 
   handleModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -171,38 +237,74 @@ class ComponentOpenAIChat extends React.Component<ComponentOpenAIChatProps, Comp
   };
 
   render() {
-    const { apiKey, selectedModel, messages, input, loading, error, availableModels } = this.state;
+    const { 
+      apiKey, 
+      selectedModel, 
+      messages, 
+      input, 
+      loading, 
+      error, 
+      availableModels,
+      apiKeyValidating,
+      apiKeyValid,
+      modelsLoading,
+      modelsLoaded
+    } = this.state;
     
     return (
       <div className="bd-openai-chat">
         <h3>OpenAI Chat</h3>
         
         <div className="config-section">
-          <label className="label">OpenAI API Key:</label>
-          <input
-            type="password"
-            value={apiKey}
-            onChange={this.handleApiKeyChange}
-            placeholder="sk-..."
-            className="api-key-input"
-            disabled={loading}
-          />
+          <div className="api-key-section">
+            <label className="label">OpenAI API Key:</label>
+            <div className="input-with-status">
+              <input
+                type="password"
+                value={apiKey}
+                onChange={this.handleApiKeyChange}
+                placeholder="sk-..."
+                className="api-key-input"
+                disabled={loading}
+              />
+              <div className="status-indicator">
+                {apiKeyValidating && (
+                  <div className="spinner"></div>
+                )}
+                {apiKeyValid && !apiKeyValidating && (
+                  <div className="check-mark">✓</div>
+                )}
+              </div>
+            </div>
+          </div>
           
           <div className="config-row">
             <div className="flex-1">
-              <label className="label">Model:</label>
-              <select
-                value={selectedModel}
-                onChange={this.handleModelChange}
-                className="model-select"
-                disabled={loading}
-              >
-                {availableModels.map(model => (
-                  <option key={model.value} value={model.value}>
-                    {model.label}
-                  </option>
-                ))}
-              </select>
+              <div className="model-section">
+                <label className="label">Model:</label>
+                <div className="input-with-status">
+                  <select
+                    value={selectedModel}
+                    onChange={this.handleModelChange}
+                    className="model-select"
+                    disabled={loading || !apiKeyValid}
+                  >
+                    {availableModels.map(model => (
+                      <option key={model.value} value={model.value}>
+                        {model.label}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="status-indicator">
+                    {modelsLoading && (
+                      <div className="spinner"></div>
+                    )}
+                    {modelsLoaded && !modelsLoading && (
+                      <div className="check-mark">✓</div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
             <button
               onClick={this.clearChat}
@@ -250,22 +352,24 @@ class ComponentOpenAIChat extends React.Component<ComponentOpenAIChatProps, Comp
         </div>
 
         <div className="input-section">
-          <input
-            type="text"
-            value={input}
-            onChange={this.handleInputChange}
-            onKeyDown={this.handleKeyDown}
-            placeholder="Ask OpenAI..."
-            className="message-input"
-            disabled={loading}
-          />
-          <button
-            onClick={this.sendMessage}
-            disabled={loading || !input.trim() || !apiKey}
-            className="send-button"
-          >
-            Send
-          </button>
+          <div className="input-with-button">
+            <input
+              type="text"
+              value={input}
+              onChange={this.handleInputChange}
+              onKeyDown={this.handleKeyDown}
+              placeholder="Ask OpenAI..."
+              className="message-input"
+              disabled={loading || !apiKeyValid}
+            />
+            <button
+              onClick={this.sendMessage}
+              disabled={loading || !input.trim() || !apiKeyValid}
+              className="send-button-inline"
+            >
+              Send
+            </button>
+          </div>
         </div>
       </div>
     );

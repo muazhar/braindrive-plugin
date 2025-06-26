@@ -153,6 +153,55 @@ class OpenAILifecycleManager(BaseLifecycleManager):
                     "defaultHeight": 3
                 },
                 "tags": ["ai", "openai", "api", "status", "key"]
+            },
+            {
+                "name": "ComponentOpenAIChat",
+                "display_name": "OpenAI Chat Interface",
+                "description": "Interactive chat interface with OpenAI models including dynamic model selection",
+                "icon": "MessageSquare",
+                "category": "ai",
+                "priority": 2,
+                "props": {
+                    "initialGreeting": {
+                        "type": "string",
+                        "description": "Initial greeting message",
+                        "default": "Hello! Ask me anything powered by OpenAI."
+                    },
+                    "apiKey": {
+                        "type": "string",
+                        "description": "OpenAI API Key",
+                        "default": ""
+                    }
+                },
+                "config_fields": {
+                    "default_model": {
+                        "type": "string",
+                        "description": "Default OpenAI model to use",
+                        "default": "gpt-3.5-turbo"
+                    },
+                    "max_tokens": {
+                        "type": "number",
+                        "description": "Maximum tokens per response",
+                        "default": 1000
+                    },
+                    "temperature": {
+                        "type": "number",
+                        "description": "Response creativity (0-1)",
+                        "default": 0.7
+                    }
+                },
+                "messages": {},
+                "required_services": {
+                    "api": {"methods": ["post"], "version": "1.0.0"}
+                },
+                "dependencies": [],
+                "layout": {
+                    "minWidth": 4,
+                    "minHeight": 4,
+                    "defaultWidth": 6,
+                    "defaultHeight": 6
+                },
+                "tags": ["ai", "openai", "chat", "conversation", "models"]
             }
         ]
 

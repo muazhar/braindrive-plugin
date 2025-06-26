@@ -12,7 +12,7 @@ module.exports = {
     clean: true,
     library: {
       type: 'var',
-      name: 'OpenAIPluginin'
+      name: 'OpenAIPlugin'
     }
   },
   resolve: {
